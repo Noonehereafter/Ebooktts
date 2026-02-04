@@ -1,0 +1,5 @@
+edge-tts
+pygame
+EbookLib
+beautifulsoup4
+requests
