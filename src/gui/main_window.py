@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox
+from tkinter import ttk, filedialog, scrolledtext, messagebox, Menu
 import threading
 import asyncio
 import os
@@ -19,8 +19,8 @@ class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Ứng dụng TTS (Edge TTS) - v1.2")
-        self.geometry("950x750")
+        self.title("Ứng dụng TTS (Edge TTS) - v1.3")
+        self.geometry("950x800")
 
         # Apply Theme
         style = ttk.Style()
@@ -45,6 +45,7 @@ class MainWindow(tk.Tk):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
+        self.create_menu()
         self.create_widgets()
         self.bind_shortcuts()
 
@@ -55,13 +56,46 @@ class MainWindow(tk.Tk):
         # Clean exit
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def create_menu(self):
+        menubar = Menu(self)
+        self.config(menu=menubar)
+
+        file_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tệp (File)", menu=file_menu)
+
+        file_menu.add_command(label="Mở File...", command=self.load_file_action)
+
+        # Recent Files
+        self.recent_menu = Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Mở Gần Đây", menu=self.recent_menu)
+        self.update_recent_menu()
+
+        file_menu.add_separator()
+        file_menu.add_command(label="Thoát", command=self.on_closing)
+
+        edit_menu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Chỉnh sửa", menu=edit_menu)
+        edit_menu.add_command(label="Làm sạch văn bản", command=self.clean_text_action)
+
+    def update_recent_menu(self):
+        self.recent_menu.delete(0, tk.END)
+        recents = self.config.get("recent_files", [])
+        if not recents:
+            self.recent_menu.add_command(label="(Trống)", state="disabled")
+        else:
+            for filepath in recents:
+                self.recent_menu.add_command(
+                    label=os.path.basename(filepath),
+                    command=lambda p=filepath: self.load_file_direct(p)
+                )
+
     def create_widgets(self):
         # --- Top Frame: File Loading and Chapter Split ---
         top_frame = ttk.Frame(self, padding=10)
         top_frame.grid(row=0, column=0, sticky="ew")
 
         ttk.Label(top_frame, text="Nhập văn bản hoặc tải file:").pack(side="left")
-        self.btn_load = ttk.Button(top_frame, text="Chọn File (.txt, .epub, .srt)", command=self.load_file_action)
+        self.btn_load = ttk.Button(top_frame, text="Chọn File", command=self.load_file_action)
         self.btn_load.pack(side="right")
 
         self.var_split_chapters = tk.BooleanVar()
@@ -86,35 +120,48 @@ class MainWindow(tk.Tk):
         # --- Middle Frame: Text Area ---
         self.text_area = scrolledtext.ScrolledText(self, wrap=tk.WORD, font=("Arial", 12))
         self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        # Bind text change to duration estimate
+        self.text_area.bind('<<Modified>>', self.on_text_changed)
 
         # --- Settings Frame ---
         settings_frame = ttk.LabelFrame(self, text="Tùy chọn", padding=10)
         settings_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
 
-        # Voice Selection
+        # Row 0
         ttk.Label(settings_frame, text="Giọng đọc:").grid(row=0, column=0, padx=5, sticky="w")
         self.combo_voice = ttk.Combobox(settings_frame, state="readonly", width=50)
-        self.combo_voice.grid(row=0, column=1, padx=5, sticky="w")
+        self.combo_voice.grid(row=0, column=1, padx=5, sticky="w", columnspan=2)
 
-        # Rate Slider
+        # Row 1
         ttk.Label(settings_frame, text="Tốc độ:").grid(row=1, column=0, padx=5, sticky="w")
         self.scale_rate = ttk.Scale(settings_frame, from_=0.5, to=2.0, value=self.config.get("rate", 1.0), command=self.update_rate_label)
         self.scale_rate.grid(row=1, column=1, padx=5, sticky="ew")
         self.lbl_rate_val = ttk.Label(settings_frame, text=f"{self.config.get('rate', 1.0)}x")
         self.lbl_rate_val.grid(row=1, column=2, padx=5, sticky="w")
 
-        # Volume Slider
+        # Row 2
         ttk.Label(settings_frame, text="Âm lượng:").grid(row=2, column=0, padx=5, sticky="w")
         self.scale_volume = ttk.Scale(settings_frame, from_=0, to=100, value=self.config.get("volume", 100), command=self.update_volume_label)
         self.scale_volume.grid(row=2, column=1, padx=5, sticky="ew")
         self.lbl_volume_val = ttk.Label(settings_frame, text=f"{int(self.config.get('volume', 100))}%")
         self.lbl_volume_val.grid(row=2, column=2, padx=5, sticky="w")
 
+        # Row 3 - Pitch
+        ttk.Label(settings_frame, text="Cao độ (Hz):").grid(row=3, column=0, padx=5, sticky="w")
+        self.scale_pitch = ttk.Scale(settings_frame, from_=-50, to=50, value=self.config.get("pitch", 0), command=self.update_pitch_label)
+        self.scale_pitch.grid(row=3, column=1, padx=5, sticky="ew")
+        self.lbl_pitch_val = ttk.Label(settings_frame, text=f"{int(self.config.get('pitch', 0))}Hz")
+        self.lbl_pitch_val.grid(row=3, column=2, padx=5, sticky="w")
+
         settings_frame.columnconfigure(1, weight=1)
 
         # --- Bottom Frame: Controls and Progress ---
         control_frame = ttk.Frame(self, padding=10)
         control_frame.grid(row=3, column=0, sticky="ew")
+
+        # Info Label (Duration)
+        self.lbl_info = ttk.Label(control_frame, text="Ước tính: 0s")
+        self.lbl_info.pack(side="top", anchor="w", pady=2)
 
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, orient="horizontal", length=200, mode="determinate")
@@ -143,9 +190,38 @@ class MainWindow(tk.Tk):
 
     def update_rate_label(self, val):
         self.lbl_rate_val.config(text=f"{float(val):.1f}x")
+        self.update_estimated_duration()
 
     def update_volume_label(self, val):
         self.lbl_volume_val.config(text=f"{int(float(val))}%")
+
+    def update_pitch_label(self, val):
+        self.lbl_pitch_val.config(text=f"{int(float(val))}Hz")
+
+    def on_text_changed(self, event=None):
+        self.text_area.edit_modified(False)
+        self.update_estimated_duration()
+
+    def update_estimated_duration(self):
+        if self.is_subtitle_loaded:
+             # Duration is fixed by subtitle
+             if self.current_subtitle_segments:
+                 duration = self.current_subtitle_segments[-1]['end'] / 1000
+                 self.lbl_info.config(text=f"Thời lượng Subtitle: {int(duration // 60)}m {int(duration % 60)}s")
+             return
+
+        text = self.text_area.get("1.0", tk.END)
+        word_count = len(text.split())
+        rate = float(self.scale_rate.get())
+
+        # Approx: 150 words per minute at 1.0x
+        # Duration (min) = (Words / 150) / Rate
+        if word_count > 0:
+            minutes = (word_count / 150) / rate
+            seconds = int(minutes * 60)
+            self.lbl_info.config(text=f"Ước tính: {seconds // 60}m {seconds % 60}s ({word_count} từ)")
+        else:
+            self.lbl_info.config(text="Ước tính: 0s")
 
     def load_voices(self):
         try:
@@ -166,7 +242,6 @@ class MainWindow(tk.Tk):
             display = f"{name} ({gender}, {locale})"
             voice_values.append(display)
 
-        # Custom Sort
         def sort_key(s):
             if "vi-VN" in s: return (0, s)
             if "en-US" in s: return (1, s)
@@ -175,9 +250,8 @@ class MainWindow(tk.Tk):
         voice_values.sort(key=sort_key)
         self.combo_voice['values'] = voice_values
 
-        # Try to restore selection
         if voice_values:
-            self.combo_voice.current(0) # Default
+            self.combo_voice.current(0)
             if target_voice_shortname:
                 for idx, val in enumerate(voice_values):
                     if val.startswith(target_voice_shortname):
@@ -197,8 +271,24 @@ class MainWindow(tk.Tk):
             ]
         )
         if filepath:
-            self.current_filepath = filepath
-            self.reload_file_content()
+            self.load_file_direct(filepath)
+
+    def load_file_direct(self, filepath):
+        self.current_filepath = filepath
+        # Update config recent files
+        self.config = ConfigManager.add_recent_file(self.config, filepath)
+        ConfigManager.save_config(self.config)
+        self.update_recent_menu()
+
+        self.reload_file_content()
+
+    def clean_text_action(self):
+        text = self.text_area.get("1.0", tk.END)
+        # Basic cleaning: replace multiple newlines with one, multiple spaces with one
+        cleaned = " ".join(text.split())
+        self.text_area.delete("1.0", tk.END)
+        self.text_area.insert("1.0", cleaned)
+        self.status_var.set("Đã làm sạch văn bản.")
 
     def reload_file_content(self):
         if not hasattr(self, 'current_filepath') or not self.current_filepath:
@@ -209,11 +299,9 @@ class MainWindow(tk.Tk):
         self.is_epub_loaded = (ext == '.epub')
         self.is_subtitle_loaded = (ext in ['.srt', '.vtt', '.ass', '.ssa'])
 
-        # Reset states
         self.current_chapters = []
         self.current_subtitle_segments = []
 
-        # UI Toggle
         if self.is_epub_loaded and split_chapters:
              self.frame_chapters.grid(row=0, column=0, sticky="s", pady=(40,0))
         else:
@@ -225,15 +313,13 @@ class MainWindow(tk.Tk):
             self.text_area.delete("1.0", tk.END)
 
             if self.is_subtitle_loaded:
-                # Content is list of dicts: [{'start', 'end', 'text'}]
                 self.current_subtitle_segments = content
-                # Display raw text for preview
                 display_text = "\n".join([f"[{s['start']}->{s['end']}] {s['text']}" for s in content])
                 self.text_area.insert("1.0", display_text)
                 self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
                 self.status_var.set(f"Đã tải Subtitle: {os.path.basename(self.current_filepath)} ({len(content)} lines)")
 
-            elif isinstance(content, list): # Chapters
+            elif isinstance(content, list):
                 self.current_chapters = content
                 chapter_titles = [c['title'] for c in content]
                 self.combo_chapters['values'] = chapter_titles
@@ -249,6 +335,8 @@ class MainWindow(tk.Tk):
                 self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
                 self.status_var.set(f"Đã tải: {os.path.basename(self.current_filepath)}")
 
+            self.update_estimated_duration()
+
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
@@ -262,10 +350,11 @@ class MainWindow(tk.Tk):
             chapter = self.current_chapters[idx]
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert("1.0", chapter['content'])
+            self.update_estimated_duration()
 
     def get_settings(self):
         text = self.text_area.get("1.0", tk.END).strip()
-        if not text and not self.is_subtitle_loaded: # Subtitle mode might rely on hidden data
+        if not text and not self.is_subtitle_loaded:
             messagebox.showwarning("Cảnh báo", "Vui lòng nhập nội dung.")
             return None
 
@@ -278,8 +367,9 @@ class MainWindow(tk.Tk):
 
         rate = float(self.scale_rate.get())
         volume = int(float(self.scale_volume.get()))
+        pitch = int(float(self.scale_pitch.get()))
 
-        return text, voice, rate, volume
+        return text, voice, rate, volume, pitch
 
     def play_action(self):
         if self.is_subtitle_loaded:
@@ -290,7 +380,7 @@ class MainWindow(tk.Tk):
         if not settings:
             return
 
-        text, voice, rate, volume = settings
+        text, voice, rate, volume, pitch = settings
 
         self.btn_play.config(state="disabled")
         self.btn_save.config(state="disabled")
@@ -298,16 +388,16 @@ class MainWindow(tk.Tk):
         self.progress.config(mode="indeterminate")
         self.progress.start(10)
 
-        threading.Thread(target=self.run_tts_play, args=(text, voice, rate, volume), daemon=True).start()
+        threading.Thread(target=self.run_tts_play, args=(text, voice, rate, volume, pitch), daemon=True).start()
 
-    def run_tts_play(self, text, voice, rate, volume):
+    def run_tts_play(self, text, voice, rate, volume, pitch):
         try:
             try:
                 self.player.stop()
             except:
                 pass
 
-            asyncio.run(self.tts.save_audio(text, voice, rate, volume, self.temp_file))
+            asyncio.run(self.tts.save_audio(text, voice, rate, volume, self.temp_file, pitch))
             self.after(0, self.start_playback)
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Lỗi TTS", str(e)))
@@ -330,22 +420,19 @@ class MainWindow(tk.Tk):
         self.progress.config(mode="determinate", value=0)
 
     def save_action(self):
-        # 1. Subtitle Mode
         if self.is_subtitle_loaded and self.current_subtitle_segments:
             self.save_subtitle_audio_action()
             return
 
-        # 2. Split Chapters Mode
         if self.var_split_chapters.get() and self.current_chapters:
              self.save_chapters_action()
              return
 
-        # 3. Normal Mode
         settings = self.get_settings()
         if not settings:
             return
 
-        text, voice, rate, volume = settings
+        text, voice, rate, volume, pitch = settings
 
         filepath = filedialog.asksaveasfilename(
             defaultextension=".mp3",
@@ -360,7 +447,7 @@ class MainWindow(tk.Tk):
         self.progress.config(mode="indeterminate")
         self.progress.start(10)
 
-        threading.Thread(target=self.run_tts_save, args=(text, voice, rate, volume, filepath), daemon=True).start()
+        threading.Thread(target=self.run_tts_save, args=(text, voice, rate, volume, filepath, pitch), daemon=True).start()
 
     def save_subtitle_audio_action(self):
         filepath = filedialog.asksaveasfilename(
@@ -371,9 +458,9 @@ class MainWindow(tk.Tk):
         if not filepath:
             return
 
-        settings = self.get_settings() # We need voice/rate/volume
+        settings = self.get_settings()
         if not settings: return
-        _, voice, rate, volume = settings
+        _, voice, rate, volume, pitch = settings
 
         self.btn_play.config(state="disabled")
         self.btn_save.config(state="disabled")
@@ -382,17 +469,17 @@ class MainWindow(tk.Tk):
 
         threading.Thread(
             target=self.run_tts_subtitle,
-            args=(self.current_subtitle_segments, voice, rate, volume, filepath),
+            args=(self.current_subtitle_segments, voice, rate, volume, filepath, pitch),
             daemon=True
         ).start()
 
-    def run_tts_subtitle(self, segments, voice, rate, volume, filepath):
+    def run_tts_subtitle(self, segments, voice, rate, volume, filepath, pitch):
         def progress_cb(current, total):
             self.after(0, lambda: self.progress.config(value=current))
             self.after(0, lambda: self.status_var.set(f"Đang xử lý dòng {current}/{total}"))
 
         try:
-            asyncio.run(self.tts.generate_audio_with_silence(segments, voice, rate, volume, filepath, progress_cb))
+            asyncio.run(self.tts.generate_audio_with_silence(segments, voice, rate, volume, filepath, progress_cb, pitch))
             self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã lưu file audio đồng bộ tại:\n{filepath}"))
         except Exception as e:
              self.after(0, lambda: messagebox.showerror("Lỗi Subtitle TTS", str(e)))
@@ -400,17 +487,14 @@ class MainWindow(tk.Tk):
             self.after(0, self.reset_ui_state)
             self.after(0, lambda: self.status_var.set("Sẵn sàng"))
 
-
     def save_chapters_action(self):
         directory = filedialog.askdirectory(title="Chọn thư mục để lưu các chương")
         if not directory:
             return
 
-        voice_str = self.combo_voice.get()
-        if not voice_str: return
-        voice = voice_str.split(" ")[0]
-        rate = float(self.scale_rate.get())
-        volume = int(float(self.scale_volume.get()))
+        settings = self.get_settings()
+        if not settings: return
+        _, voice, rate, volume, pitch = settings
 
         self.btn_play.config(state="disabled")
         self.btn_save.config(state="disabled")
@@ -419,11 +503,11 @@ class MainWindow(tk.Tk):
 
         threading.Thread(
             target=self.run_tts_save_batch,
-            args=(self.current_chapters, voice, rate, volume, directory),
+            args=(self.current_chapters, voice, rate, volume, directory, pitch),
             daemon=True
         ).start()
 
-    def run_tts_save_batch(self, chapters, voice, rate, volume, directory):
+    def run_tts_save_batch(self, chapters, voice, rate, volume, directory, pitch):
         try:
             total = len(chapters)
             for i, chapter in enumerate(chapters):
@@ -436,7 +520,7 @@ class MainWindow(tk.Tk):
                 self.after(0, lambda idx=i: self.status_var.set(f"Đang lưu ({idx+1}/{total}): {filename}"))
                 self.after(0, lambda idx=i: self.progress.config(value=idx+1))
 
-                asyncio.run(self.tts.save_audio(text, voice, rate, volume, filepath))
+                asyncio.run(self.tts.save_audio(text, voice, rate, volume, filepath, pitch))
 
             self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã lưu {total} file tại:\n{directory}"))
         except Exception as e:
@@ -445,9 +529,9 @@ class MainWindow(tk.Tk):
             self.after(0, self.reset_ui_state)
             self.after(0, lambda: self.status_var.set("Sẵn sàng"))
 
-    def run_tts_save(self, text, voice, rate, volume, filepath):
+    def run_tts_save(self, text, voice, rate, volume, filepath, pitch):
         try:
-            asyncio.run(self.tts.save_audio(text, voice, rate, volume, filepath))
+            asyncio.run(self.tts.save_audio(text, voice, rate, volume, filepath, pitch))
             self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã lưu file tại:\n{filepath}"))
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("Lỗi Lưu File", str(e)))
@@ -468,6 +552,7 @@ class MainWindow(tk.Tk):
 
         self.config["rate"] = self.scale_rate.get()
         self.config["volume"] = self.scale_volume.get()
+        self.config["pitch"] = self.scale_pitch.get()
 
         ConfigManager.save_config(self.config)
         self.destroy()

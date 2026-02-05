@@ -12,7 +12,11 @@
     *   Lựa chọn giọng đọc (Hỗ trợ tiếng Việt và nhiều ngôn ngữ khác).
     *   Điều chỉnh tốc độ đọc (Rate).
     *   Điều chỉnh âm lượng (Volume).
-    *   **Tự động lưu cấu hình**: Ứng dụng tự động ghi nhớ các thiết lập của bạn cho lần mở sau.
+    *   **Điều chỉnh cao độ (Pitch)**: Tăng giảm độ cao của giọng đọc.
+    *   **Tự động lưu cấu hình**: Ứng dụng tự động ghi nhớ các thiết lập và **danh sách file mở gần đây** (Recent Files).
+*   **Tiện ích bổ sung**:
+    *   **Làm sạch văn bản**: Tự động xóa các dấu xuống dòng thừa, khoảng trắng thừa (Menu `Chỉnh sửa` -> `Làm sạch văn bản`).
+    *   **Ước tính thời lượng**: Hiển thị thời gian đọc ước tính dựa trên số lượng từ và tốc độ đọc.
 *   **Điều khiển dễ dàng**:
     *   Phát (Play) - Phím tắt **F5**.
     *   Dừng (Stop) - Phím tắt **F6**.
@@ -21,13 +25,13 @@
     *   Lưu 1 file duy nhất cho toàn bộ nội dung.
     *   Lưu hàng loạt file (mỗi chương 1 file) cho Ebook.
     *   Lưu file audio đã đồng bộ thời gian cho Phụ đề.
-*   **Giao diện hiện đại**: Sử dụng theme mới, có thanh tiến trình (Progress Bar) khi xử lý tác vụ nặng.
+*   **Giao diện hiện đại**: Sử dụng theme mới, có thanh tiến trình (Progress Bar).
 
 ## Yêu cầu hệ thống
 
 *   Python 3.8 trở lên.
 *   Kết nối Internet (để tải giọng đọc từ Edge TTS).
-*   **FFmpeg**: Cần cài đặt FFmpeg và thêm vào PATH để tính năng đồng bộ audio phụ đề hoạt động (do thư viện `pydub` yêu cầu).
+*   **FFmpeg**: Cần cài đặt FFmpeg và thêm vào PATH để tính năng đồng bộ audio phụ đề hoạt động.
 
 ## Hướng dẫn cài đặt
 
@@ -56,24 +60,18 @@
 
 2.  **Trên giao diện ứng dụng**:
     *   **Nhập văn bản**: Gõ hoặc dán văn bản vào khung lớn ở giữa.
-    *   **Tải file**: Nhấn nút "Chọn File" để tải nội dung từ file `.txt`, `.epub` hoặc `.srt/.vtt`.
+    *   **Tải file**: Nhấn nút "Chọn File" hoặc dùng menu `Tệp` -> `Mở File...` / `Mở Gần Đây`.
+    *   **Tùy chỉnh**:
+        *   Chọn giọng đọc, Tốc độ, Âm lượng, Cao độ.
+        *   Xem ước tính thời lượng ở góc dưới bên trái.
     *   **Xử lý Phụ đề**:
         *   Tải file phụ đề (.srt, .vtt).
-        *   Nội dung và mốc thời gian sẽ hiển thị để xem trước.
         *   Nhấn "Lưu MP3" -> Chọn "Lưu Audio Đồng Bộ Subtitle".
-        *   Ứng dụng sẽ tạo ra 1 file MP3 duy nhất, trong đó các câu thoại khớp đúng thời điểm hiển thị trong file phụ đề.
     *   **Tách chương (Ebook)**:
         *   Tích chọn checkbox "Tách chương (EPUB)".
-        *   Sau khi tải file, danh sách chương sẽ hiện ra để bạn chọn xem.
-        *   Khi nhấn "Lưu MP3", ứng dụng sẽ yêu cầu chọn thư mục để lưu toàn bộ các chương thành các file riêng biệt.
-    *   **Chọn giọng đọc/Tốc độ/Âm lượng**: Điều chỉnh tùy ý.
+        *   Chọn chương muốn xem hoặc nhấn "Lưu MP3" để lưu toàn bộ.
     *   **Nghe thử**: Nhấn nút "Phát" (F5).
     *   **Lưu file**: Nhấn nút "Lưu MP3" (Ctrl+S).
-
-## Lưu ý
-
-*   Tính năng đồng bộ phụ đề yêu cầu kết nối mạng ổn định vì phải tạo nhiều file audio nhỏ liên tục.
-*   Quá trình xử lý file phụ đề dài có thể mất nhiều thời gian.
 
 ## Cấu trúc thư mục
 

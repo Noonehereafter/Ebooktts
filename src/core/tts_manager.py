@@ -14,7 +14,7 @@ class TTSManager:
             print(f"Error fetching voices: {e}")
             return []
 
-    async def save_audio(self, text, voice, rate, volume, output_file):
+    async def save_audio(self, text, voice, rate, volume, output_file, pitch=0):
         """Generates audio from text."""
         try:
             rate_percentage = int((rate - 1.0) * 100)
@@ -23,26 +23,21 @@ class TTSManager:
             volume_diff = int(volume - 100)
             volume_str = f"{volume_diff:+d}%"
 
-            communicate = edge_tts.Communicate(text, voice, rate=rate_str, volume=volume_str)
+            pitch_str = f"{int(pitch):+d}Hz"
+
+            communicate = edge_tts.Communicate(text, voice, rate=rate_str, volume=volume_str, pitch=pitch_str)
             await communicate.save(output_file)
         except Exception as e:
             raise Exception(f"TTS Generation Error: {e}")
 
-    async def generate_audio_with_silence(self, segments, voice, rate, volume, output_file, progress_callback=None):
+    async def generate_audio_with_silence(self, segments, voice, rate, volume, output_file, progress_callback=None, pitch=0):
         """
         Generates audio for subtitle segments and positions them on a timeline.
-
-        Args:
-            segments (list): List of dicts {'start': ms, 'end': ms, 'text': str}
-            voice, rate, volume: TTS params
-            output_file: Path to save result
-            progress_callback: Function(current, total)
         """
         if not segments:
             raise Exception("No subtitle segments found.")
 
-        # Determine total duration
-        total_duration = segments[-1]['end'] + 1000 # Add buffer at end
+        total_duration = segments[-1]['end'] + 1000
         base_audio = AudioSegment.silent(duration=total_duration)
 
         temp_dir = tempfile.gettempdir()
@@ -54,31 +49,18 @@ class TTSManager:
                 if not text.strip():
                     continue
 
-                # Generate clip
                 temp_clip_path = os.path.join(temp_dir, f"temp_tts_clip_{i}.mp3")
-                await self.save_audio(text, voice, rate, volume, temp_clip_path)
+                await self.save_audio(text, voice, rate, volume, temp_clip_path, pitch=pitch)
 
-                # Load clip
                 clip = AudioSegment.from_mp3(temp_clip_path)
-
-                # Overlay
-                # Note: If clip is longer than the gap to next segment, it might overlap.
-                # User requirement: "có khoảng trống ko có audio nhưng vẫn phải có audio đủ dài"
-                # This implies: If TTS is shorter than (end-start), leave silence.
-                # If TTS is longer, it will just extend (possibly overlapping next segment start).
-                # To be robust, we just overlay at 'start'. If it overlaps next, Pydub handles it by mixing.
-                # But audiobooks usually shouldn't overlap.
-                # For now, we assume simple overlay.
                 base_audio = base_audio.overlay(clip, position=seg['start'])
 
-                # Cleanup clip
                 if os.path.exists(temp_clip_path):
                     os.remove(temp_clip_path)
 
                 if progress_callback:
                     progress_callback(i+1, total_segments)
 
-            # Export final
             base_audio.export(output_file, format="mp3")
 
         except Exception as e:
