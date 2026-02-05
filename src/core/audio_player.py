@@ -44,6 +44,7 @@ class AudioPlayer:
         """Stops playback."""
         try:
             pygame.mixer.music.stop()
+            pygame.mixer.music.unload()
             self.is_paused = False
         except Exception as e:
              print(f"Error stopping audio: {e}")

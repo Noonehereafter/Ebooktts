@@ -179,6 +179,12 @@ class MainWindow(tk.Tk):
 
     def run_tts_play(self, text, voice, rate, volume):
         try:
+            # Ensure file is not locked by player
+            try:
+                self.player.stop()
+            except:
+                pass
+
             asyncio.run(self.tts.save_audio(text, voice, rate, volume, self.temp_file))
             self.after(0, self.start_playback)
         except Exception as e:
