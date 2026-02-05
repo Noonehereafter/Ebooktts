@@ -11,11 +11,15 @@
     *   Lựa chọn giọng đọc (Hỗ trợ tiếng Việt và nhiều ngôn ngữ khác).
     *   Điều chỉnh tốc độ đọc (Rate).
     *   Điều chỉnh âm lượng (Volume).
-*   **Điều khiển dễ dàng**: Phát (Play), Dừng (Stop).
+    *   **Tự động lưu cấu hình**: Ứng dụng tự động ghi nhớ các thiết lập của bạn cho lần mở sau.
+*   **Điều khiển dễ dàng**:
+    *   Phát (Play) - Phím tắt **F5**.
+    *   Dừng (Stop) - Phím tắt **F6**.
+    *   Lưu file (Save) - Phím tắt **Ctrl+S**.
 *   **Lưu file âm thanh**:
     *   Lưu 1 file duy nhất cho toàn bộ nội dung.
     *   Hoặc lưu hàng loạt file (mỗi chương 1 file) vào thư mục chỉ định.
-*   **Giao diện tiếng Việt**: Thân thiện và dễ sử dụng.
+*   **Giao diện hiện đại**: Sử dụng theme mới, có thanh tiến trình (Progress Bar) khi xử lý tác vụ nặng.
 
 ## Yêu cầu hệ thống
 
@@ -50,23 +54,23 @@
     *   **Tách chương (Chỉ áp dụng file EPUB)**:
         *   Tích chọn checkbox "Tách chương (EPUB)".
         *   Sau khi tải file, danh sách chương sẽ hiện ra để bạn chọn xem.
-        *   Khi nhấn "Lưu MP3", ứng dụng sẽ yêu cầu chọn thư mục để lưu toàn bộ các chương thành các file riêng biệt (Ví dụ: `01_Chuong1.mp3`, `02_Chuong2.mp3`...).
-    *   **Chọn giọng đọc**: Chọn giọng đọc mong muốn từ danh sách (Ứng dụng ưu tiên hiển thị giọng tiếng Việt lên đầu).
+        *   Khi nhấn "Lưu MP3", ứng dụng sẽ yêu cầu chọn thư mục để lưu toàn bộ các chương thành các file riêng biệt.
+    *   **Chọn giọng đọc**: Chọn giọng đọc mong muốn từ danh sách.
     *   **Chỉnh tốc độ/Âm lượng**: Kéo thanh trượt để điều chỉnh theo ý muốn.
-    *   **Nghe thử**: Nhấn nút "Phát" (Phát nội dung đang hiển thị).
-    *   **Lưu file**: Nhấn nút "Lưu MP3".
+    *   **Nghe thử**: Nhấn nút "Phát" (hoặc F5).
+    *   **Lưu file**: Nhấn nút "Lưu MP3" (hoặc Ctrl+S).
 
 ## Lưu ý
 
 *   Do sử dụng dịch vụ online của Microsoft Edge, bạn cần kết nối mạng để lấy danh sách giọng đọc và tạo âm thanh.
-*   Quá trình chuyển đổi văn bản dài hoặc nhiều chương có thể mất thời gian tùy thuộc vào tốc độ mạng.
+*   Quá trình lưu hàng loạt chương sẽ hiển thị thanh tiến trình ở dưới cùng để bạn theo dõi.
 
 ## Cấu trúc thư mục
 
 *   `src/`: Mã nguồn chính.
     *   `gui/`: Giao diện người dùng.
     *   `core/`: Xử lý TTS và Audio.
-    *   `utils/`: Xử lý file.
+    *   `utils/`: Xử lý file, cấu hình.
 *   `tests/`: Các bài test cơ bản.
 *   `main.py`: File khởi chạy.
 *   `requirements.txt`: Danh sách thư viện.
