@@ -5,13 +5,16 @@
 ## Tính năng chính
 
 *   **Đọc văn bản đa dạng**: Hỗ trợ nhập liệu trực tiếp, file `.txt`, file `.epub`.
+*   **Tách chương (Ebook)**: Hỗ trợ tự động tách và lưu file âm thanh theo từng chương đối với file `.epub`.
 *   **Giọng đọc chất lượng cao**: Sử dụng thư viện `edge-tts` để truy cập các giọng đọc tự nhiên của Microsoft Edge (Online).
 *   **Tùy chỉnh linh hoạt**:
     *   Lựa chọn giọng đọc (Hỗ trợ tiếng Việt và nhiều ngôn ngữ khác).
     *   Điều chỉnh tốc độ đọc (Rate).
     *   Điều chỉnh âm lượng (Volume).
 *   **Điều khiển dễ dàng**: Phát (Play), Dừng (Stop).
-*   **Lưu file âm thanh**: Xuất ra file MP3 để nghe offline.
+*   **Lưu file âm thanh**:
+    *   Lưu 1 file duy nhất cho toàn bộ nội dung.
+    *   Hoặc lưu hàng loạt file (mỗi chương 1 file) vào thư mục chỉ định.
 *   **Giao diện tiếng Việt**: Thân thiện và dễ sử dụng.
 
 ## Yêu cầu hệ thống
@@ -44,15 +47,19 @@
 2.  **Trên giao diện ứng dụng**:
     *   **Nhập văn bản**: Gõ hoặc dán văn bản vào khung lớn ở giữa.
     *   **Tải file**: Nhấn nút "Chọn File (.txt, .epub)" ở góc trên bên phải để tải nội dung từ file có sẵn.
+    *   **Tách chương (Chỉ áp dụng file EPUB)**:
+        *   Tích chọn checkbox "Tách chương (EPUB)".
+        *   Sau khi tải file, danh sách chương sẽ hiện ra để bạn chọn xem.
+        *   Khi nhấn "Lưu MP3", ứng dụng sẽ yêu cầu chọn thư mục để lưu toàn bộ các chương thành các file riêng biệt (Ví dụ: `01_Chuong1.mp3`, `02_Chuong2.mp3`...).
     *   **Chọn giọng đọc**: Chọn giọng đọc mong muốn từ danh sách (Ứng dụng ưu tiên hiển thị giọng tiếng Việt lên đầu).
     *   **Chỉnh tốc độ/Âm lượng**: Kéo thanh trượt để điều chỉnh theo ý muốn.
-    *   **Nghe thử**: Nhấn nút "Phát".
-    *   **Lưu file**: Nhấn nút "Lưu MP3" và chọn nơi lưu file âm thanh.
+    *   **Nghe thử**: Nhấn nút "Phát" (Phát nội dung đang hiển thị).
+    *   **Lưu file**: Nhấn nút "Lưu MP3".
 
 ## Lưu ý
 
 *   Do sử dụng dịch vụ online của Microsoft Edge, bạn cần kết nối mạng để lấy danh sách giọng đọc và tạo âm thanh.
-*   Quá trình chuyển đổi văn bản dài có thể mất một chút thời gian tùy thuộc vào tốc độ mạng.
+*   Quá trình chuyển đổi văn bản dài hoặc nhiều chương có thể mất thời gian tùy thuộc vào tốc độ mạng.
 
 ## Cấu trúc thư mục
 

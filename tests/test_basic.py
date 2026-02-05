@@ -59,5 +59,8 @@ class TestAudioPlayer(unittest.TestCase):
         player.stop()
         mock_music.stop.assert_called()
 
+        # Verify unload is called in stop as per previous fix
+        mock_music.unload.assert_called()
+
 if __name__ == '__main__':
     unittest.main()
