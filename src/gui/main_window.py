@@ -19,12 +19,12 @@ class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Ứng dụng TTS (Edge TTS) - v1.1")
+        self.title("Ứng dụng TTS (Edge TTS) - v1.2")
         self.geometry("950x750")
 
         # Apply Theme
         style = ttk.Style()
-        style.theme_use('clam') # Modern looking theme
+        style.theme_use('clam')
 
         # Backend Init
         self.tts = TTSManager()
@@ -35,9 +35,11 @@ class MainWindow(tk.Tk):
         # Config Init
         self.config = ConfigManager.load_config()
 
-        # Chapter management
+        # State management
         self.current_chapters = []
+        self.current_subtitle_segments = []
         self.is_epub_loaded = False
+        self.is_subtitle_loaded = False
 
         # Configure grid weight
         self.columnconfigure(0, weight=1)
@@ -59,7 +61,7 @@ class MainWindow(tk.Tk):
         top_frame.grid(row=0, column=0, sticky="ew")
 
         ttk.Label(top_frame, text="Nhập văn bản hoặc tải file:").pack(side="left")
-        self.btn_load = ttk.Button(top_frame, text="Chọn File (.txt, .epub)", command=self.load_file_action)
+        self.btn_load = ttk.Button(top_frame, text="Chọn File (.txt, .epub, .srt)", command=self.load_file_action)
         self.btn_load.pack(side="right")
 
         self.var_split_chapters = tk.BooleanVar()
@@ -156,7 +158,6 @@ class MainWindow(tk.Tk):
         self.voices_data = voices
         voice_values = []
         target_voice_shortname = self.config.get("voice", "")
-        target_index = 0
 
         for i, v in enumerate(voices):
             name = v.get('ShortName', 'Unknown')
@@ -164,12 +165,6 @@ class MainWindow(tk.Tk):
             gender = v.get('Gender', '')
             display = f"{name} ({gender}, {locale})"
             voice_values.append(display)
-
-            # Check if this matches saved preference
-            if target_voice_shortname and name == target_voice_shortname:
-                # We can't set index easily after sorting unless we track it differently.
-                # So we will just look it up after sort.
-                pass
 
         # Custom Sort
         def sort_key(s):
@@ -193,7 +188,13 @@ class MainWindow(tk.Tk):
 
     def load_file_action(self):
         filepath = filedialog.askopenfilename(
-            filetypes=[("Text/Epub Files", "*.txt *.epub"), ("All Files", "*.*")]
+            filetypes=[
+                ("Supported Files", "*.txt *.epub *.srt *.vtt *.ass *.ssa"),
+                ("Text Files", "*.txt"),
+                ("Epub Files", "*.epub"),
+                ("Subtitle Files", "*.srt *.vtt *.ass *.ssa"),
+                ("All Files", "*.*")
+            ]
         )
         if filepath:
             self.current_filepath = filepath
@@ -204,20 +205,35 @@ class MainWindow(tk.Tk):
             return
 
         split_chapters = self.var_split_chapters.get()
-        is_epub = self.current_filepath.lower().endswith('.epub')
-        self.is_epub_loaded = is_epub
+        ext = os.path.splitext(self.current_filepath)[1].lower()
+        self.is_epub_loaded = (ext == '.epub')
+        self.is_subtitle_loaded = (ext in ['.srt', '.vtt', '.ass', '.ssa'])
 
-        if is_epub and split_chapters:
+        # Reset states
+        self.current_chapters = []
+        self.current_subtitle_segments = []
+
+        # UI Toggle
+        if self.is_epub_loaded and split_chapters:
              self.frame_chapters.grid(row=0, column=0, sticky="s", pady=(40,0))
         else:
              self.frame_chapters.grid_forget()
 
         try:
-            content = read_file(self.current_filepath, split_chapters=(split_chapters and is_epub))
+            content = read_file(self.current_filepath, split_chapters=(split_chapters and self.is_epub_loaded))
 
             self.text_area.delete("1.0", tk.END)
 
-            if isinstance(content, list):
+            if self.is_subtitle_loaded:
+                # Content is list of dicts: [{'start', 'end', 'text'}]
+                self.current_subtitle_segments = content
+                # Display raw text for preview
+                display_text = "\n".join([f"[{s['start']}->{s['end']}] {s['text']}" for s in content])
+                self.text_area.insert("1.0", display_text)
+                self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+                self.status_var.set(f"Đã tải Subtitle: {os.path.basename(self.current_filepath)} ({len(content)} lines)")
+
+            elif isinstance(content, list): # Chapters
                 self.current_chapters = content
                 chapter_titles = [c['title'] for c in content]
                 self.combo_chapters['values'] = chapter_titles
@@ -226,13 +242,12 @@ class MainWindow(tk.Tk):
                     self.on_chapter_selected(None)
                 self.frame_chapters.grid(row=1, column=0, sticky="n", pady=5)
                 self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=(40, 5))
+                self.status_var.set(f"Đã tải Ebook: {os.path.basename(self.current_filepath)}")
             else:
-                self.current_chapters = []
                 self.text_area.insert("1.0", content)
                 self.frame_chapters.grid_forget()
                 self.text_area.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
-
-            self.status_var.set(f"Đã tải: {os.path.basename(self.current_filepath)}")
+                self.status_var.set(f"Đã tải: {os.path.basename(self.current_filepath)}")
 
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
@@ -250,7 +265,7 @@ class MainWindow(tk.Tk):
 
     def get_settings(self):
         text = self.text_area.get("1.0", tk.END).strip()
-        if not text:
+        if not text and not self.is_subtitle_loaded: # Subtitle mode might rely on hidden data
             messagebox.showwarning("Cảnh báo", "Vui lòng nhập nội dung.")
             return None
 
@@ -267,6 +282,10 @@ class MainWindow(tk.Tk):
         return text, voice, rate, volume
 
     def play_action(self):
+        if self.is_subtitle_loaded:
+            messagebox.showinfo("Thông báo", "Chế độ Subtitle hiện chỉ hỗ trợ Lưu File MP3 (để đồng bộ thời gian).")
+            return
+
         settings = self.get_settings()
         if not settings:
             return
@@ -311,10 +330,17 @@ class MainWindow(tk.Tk):
         self.progress.config(mode="determinate", value=0)
 
     def save_action(self):
+        # 1. Subtitle Mode
+        if self.is_subtitle_loaded and self.current_subtitle_segments:
+            self.save_subtitle_audio_action()
+            return
+
+        # 2. Split Chapters Mode
         if self.var_split_chapters.get() and self.current_chapters:
              self.save_chapters_action()
              return
 
+        # 3. Normal Mode
         settings = self.get_settings()
         if not settings:
             return
@@ -335,6 +361,45 @@ class MainWindow(tk.Tk):
         self.progress.start(10)
 
         threading.Thread(target=self.run_tts_save, args=(text, voice, rate, volume, filepath), daemon=True).start()
+
+    def save_subtitle_audio_action(self):
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".mp3",
+            filetypes=[("MP3 Files", "*.mp3")],
+            title="Lưu Audio Đồng Bộ Subtitle"
+        )
+        if not filepath:
+            return
+
+        settings = self.get_settings() # We need voice/rate/volume
+        if not settings: return
+        _, voice, rate, volume = settings
+
+        self.btn_play.config(state="disabled")
+        self.btn_save.config(state="disabled")
+        self.status_var.set("Đang tạo audio từ subtitle...")
+        self.progress.config(mode="determinate", maximum=len(self.current_subtitle_segments), value=0)
+
+        threading.Thread(
+            target=self.run_tts_subtitle,
+            args=(self.current_subtitle_segments, voice, rate, volume, filepath),
+            daemon=True
+        ).start()
+
+    def run_tts_subtitle(self, segments, voice, rate, volume, filepath):
+        def progress_cb(current, total):
+            self.after(0, lambda: self.progress.config(value=current))
+            self.after(0, lambda: self.status_var.set(f"Đang xử lý dòng {current}/{total}"))
+
+        try:
+            asyncio.run(self.tts.generate_audio_with_silence(segments, voice, rate, volume, filepath, progress_cb))
+            self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã lưu file audio đồng bộ tại:\n{filepath}"))
+        except Exception as e:
+             self.after(0, lambda: messagebox.showerror("Lỗi Subtitle TTS", str(e)))
+        finally:
+            self.after(0, self.reset_ui_state)
+            self.after(0, lambda: self.status_var.set("Sẵn sàng"))
+
 
     def save_chapters_action(self):
         directory = filedialog.askdirectory(title="Chọn thư mục để lưu các chương")
@@ -397,7 +462,6 @@ class MainWindow(tk.Tk):
         self.progress.config(value=0)
 
     def on_closing(self):
-        # Save config
         voice_str = self.combo_voice.get()
         if voice_str:
             self.config["voice"] = voice_str.split(" ")[0]

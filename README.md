@@ -1,11 +1,12 @@
 # Ứng dụng Text-to-Speech (TTS) sử dụng Edge TTS
 
-Đây là ứng dụng chuyển đổi văn bản thành giọng nói (Text-to-Speech) có giao diện đồ họa (GUI), sử dụng công cụ Microsoft Edge TTS chất lượng cao. Ứng dụng hỗ trợ đọc văn bản trực tiếp, đọc từ file Text (.txt) và file Ebook (.epub).
+Đây là ứng dụng chuyển đổi văn bản thành giọng nói (Text-to-Speech) có giao diện đồ họa (GUI), sử dụng công cụ Microsoft Edge TTS chất lượng cao. Ứng dụng hỗ trợ đọc văn bản trực tiếp, đọc từ file Text (.txt), file Ebook (.epub) và file Phụ đề (.srt, .vtt).
 
 ## Tính năng chính
 
-*   **Đọc văn bản đa dạng**: Hỗ trợ nhập liệu trực tiếp, file `.txt`, file `.epub`.
+*   **Đọc văn bản đa dạng**: Hỗ trợ nhập liệu trực tiếp, file `.txt`, file `.epub`, file `.srt/.vtt`.
 *   **Tách chương (Ebook)**: Hỗ trợ tự động tách và lưu file âm thanh theo từng chương đối với file `.epub`.
+*   **Đồng bộ Audio với Phụ đề**: Tạo file audio từ file phụ đề (`.srt`, `.vtt`...), tự động chèn khoảng lặng (silence) để khớp thời gian với các mốc thời gian trong phụ đề.
 *   **Giọng đọc chất lượng cao**: Sử dụng thư viện `edge-tts` để truy cập các giọng đọc tự nhiên của Microsoft Edge (Online).
 *   **Tùy chỉnh linh hoạt**:
     *   Lựa chọn giọng đọc (Hỗ trợ tiếng Việt và nhiều ngôn ngữ khác).
@@ -18,13 +19,15 @@
     *   Lưu file (Save) - Phím tắt **Ctrl+S**.
 *   **Lưu file âm thanh**:
     *   Lưu 1 file duy nhất cho toàn bộ nội dung.
-    *   Hoặc lưu hàng loạt file (mỗi chương 1 file) vào thư mục chỉ định.
+    *   Lưu hàng loạt file (mỗi chương 1 file) cho Ebook.
+    *   Lưu file audio đã đồng bộ thời gian cho Phụ đề.
 *   **Giao diện hiện đại**: Sử dụng theme mới, có thanh tiến trình (Progress Bar) khi xử lý tác vụ nặng.
 
 ## Yêu cầu hệ thống
 
 *   Python 3.8 trở lên.
 *   Kết nối Internet (để tải giọng đọc từ Edge TTS).
+*   **FFmpeg**: Cần cài đặt FFmpeg và thêm vào PATH để tính năng đồng bộ audio phụ đề hoạt động (do thư viện `pydub` yêu cầu).
 
 ## Hướng dẫn cài đặt
 
@@ -39,6 +42,9 @@
     ```bash
     pip install -r requirements.txt
     ```
+3.  **Cài đặt FFmpeg**:
+    *   Tải FFmpeg từ trang chủ.
+    *   Giải nén và thêm thư mục `bin` vào biến môi trường PATH của hệ thống.
 
 ## Hướng dẫn sử dụng
 
@@ -50,20 +56,24 @@
 
 2.  **Trên giao diện ứng dụng**:
     *   **Nhập văn bản**: Gõ hoặc dán văn bản vào khung lớn ở giữa.
-    *   **Tải file**: Nhấn nút "Chọn File (.txt, .epub)" ở góc trên bên phải để tải nội dung từ file có sẵn.
-    *   **Tách chương (Chỉ áp dụng file EPUB)**:
+    *   **Tải file**: Nhấn nút "Chọn File" để tải nội dung từ file `.txt`, `.epub` hoặc `.srt/.vtt`.
+    *   **Xử lý Phụ đề**:
+        *   Tải file phụ đề (.srt, .vtt).
+        *   Nội dung và mốc thời gian sẽ hiển thị để xem trước.
+        *   Nhấn "Lưu MP3" -> Chọn "Lưu Audio Đồng Bộ Subtitle".
+        *   Ứng dụng sẽ tạo ra 1 file MP3 duy nhất, trong đó các câu thoại khớp đúng thời điểm hiển thị trong file phụ đề.
+    *   **Tách chương (Ebook)**:
         *   Tích chọn checkbox "Tách chương (EPUB)".
         *   Sau khi tải file, danh sách chương sẽ hiện ra để bạn chọn xem.
         *   Khi nhấn "Lưu MP3", ứng dụng sẽ yêu cầu chọn thư mục để lưu toàn bộ các chương thành các file riêng biệt.
-    *   **Chọn giọng đọc**: Chọn giọng đọc mong muốn từ danh sách.
-    *   **Chỉnh tốc độ/Âm lượng**: Kéo thanh trượt để điều chỉnh theo ý muốn.
-    *   **Nghe thử**: Nhấn nút "Phát" (hoặc F5).
-    *   **Lưu file**: Nhấn nút "Lưu MP3" (hoặc Ctrl+S).
+    *   **Chọn giọng đọc/Tốc độ/Âm lượng**: Điều chỉnh tùy ý.
+    *   **Nghe thử**: Nhấn nút "Phát" (F5).
+    *   **Lưu file**: Nhấn nút "Lưu MP3" (Ctrl+S).
 
 ## Lưu ý
 
-*   Do sử dụng dịch vụ online của Microsoft Edge, bạn cần kết nối mạng để lấy danh sách giọng đọc và tạo âm thanh.
-*   Quá trình lưu hàng loạt chương sẽ hiển thị thanh tiến trình ở dưới cùng để bạn theo dõi.
+*   Tính năng đồng bộ phụ đề yêu cầu kết nối mạng ổn định vì phải tạo nhiều file audio nhỏ liên tục.
+*   Quá trình xử lý file phụ đề dài có thể mất nhiều thời gian.
 
 ## Cấu trúc thư mục
 

@@ -3,3 +3,5 @@ pygame
 EbookLib
 beautifulsoup4
 requests
+pydub
+pysubs2

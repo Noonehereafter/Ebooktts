@@ -2,6 +2,7 @@ import os
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
+import pysubs2
 
 def read_txt(filepath):
     """Reads a text file and returns its content."""
@@ -33,19 +34,16 @@ def read_epub(filepath, return_chapters=False):
         else:
             chapters = []
             # This is a basic extraction.
-            # Real EPUB navigation parsing (toc) is complex, so we iterate documents.
-            # We try to find a title, otherwise use "Chapter X"
             count = 1
             for item in book.get_items():
                 if item.get_type() == ebooklib.ITEM_DOCUMENT:
                     soup = BeautifulSoup(item.get_body_content(), 'html.parser')
                     text = soup.get_text().strip()
                     if text:
-                        # Try to find a header as title
                         title = f"Chapter {count}"
                         header = soup.find(['h1', 'h2', 'h3'])
                         if header:
-                            title = header.get_text().strip()[:50] # Limit title length
+                            title = header.get_text().strip()[:50]
 
                         chapters.append({'title': title, 'content': text})
                         count += 1
@@ -53,6 +51,28 @@ def read_epub(filepath, return_chapters=False):
 
     except Exception as e:
         raise Exception(f"Error reading EPUB file: {e}")
+
+def read_subtitle(filepath):
+    """
+    Reads a subtitle file (SRT, VTT, etc) and returns structured segments.
+
+    Returns:
+        list[dict]: List of segments [{'start': ms, 'end': ms, 'text': str}]
+    """
+    try:
+        subs = pysubs2.load(filepath)
+        segments = []
+        for line in subs:
+            # line.start and line.end are in milliseconds
+            text = line.text.replace(r"\N", " ").strip() # Clean subtitle line breaks
+            segments.append({
+                'start': line.start,
+                'end': line.end,
+                'text': text
+            })
+        return segments
+    except Exception as e:
+        raise Exception(f"Error reading Subtitle file: {e}")
 
 def read_file(filepath, split_chapters=False):
     """Dispatches to the correct reader based on file extension."""
@@ -63,5 +83,7 @@ def read_file(filepath, split_chapters=False):
         return read_txt(filepath)
     elif ext == '.epub':
         return read_epub(filepath, return_chapters=split_chapters)
+    elif ext in ['.srt', '.vtt', '.ass', '.ssa']:
+        return read_subtitle(filepath)
     else:
         raise ValueError(f"Unsupported file format: {ext}")
